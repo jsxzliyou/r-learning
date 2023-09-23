@@ -1,0 +1,128 @@
+---
+title: "statistics_Session2"
+author: "李游游"
+date: "2023-09-23"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+# need install
+#install.packages("devtools")
+#install.packages("rstatix")
+
+library(tidyverse)
+library(e1071)
+library(jiebaR)
+library(wordcloud2)
+library(rstatix)
+load("/Users/liyou/class/statistics/lj_sh_2019.RData")
+# library(showtext)
+knitr::opts_chunk$set(echo = TRUE)
+theme_set(theme(text = element_text(family = "Songti SC")))
+```
+
+# R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+# 三类指标
+## 集中趋势
+
+## 离散趋势
+
+## 形状
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+lj %>% 
+  ggplot(aes(x = bedrooms)) + 
+  geom_histogram() +
+  scale_x_continuous(breaks = seq(1,9, by = 1))
+
+```
+
+# 五种基本类型
+## 分类型数据
+
+1. Bar graph (条形图)
+```{r}
+p1 <- lj %>% 
+  ggplot(aes(line)) + 
+  geom_bar()
+  # theme(axis.title.x = element_text(angle = 2))
+  
+```
+## 数值型数据
+1. 直方图
+```{r}
+lj %>% 
+  ggplot(aes(price_ttl)) +
+  geom_histogram(color = "green") 
+  #scale_x_continuous(limits = c(65, 1000))
+```
+2. 散点图
+
+```{r}
+lj %>% 
+  ggplot(aes(building_area, price_ttl, color = line)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F)
+```
+
+3. boxplot 箱线图
+```{r}
+set.seed(1234)
+a <- data.frame(x=rnorm(100,10,2))
+ggplot(a, aes(x)) + 
+  geom_boxplot() +
+  # 中位数
+  geom_vline(xintercept = median(a$x), color = "red") +
+  # 25%分位数
+  geom_vline(xintercept = quantile(a$x, 0.25), color = "green") +
+  # 75%分位数
+  geom_vline(xintercept = quantile(a$x, 0.75), color = "blue") +
+  # Q3 + 1.5IQR 离群点
+  geom_vline(xintercept = quantile(a$x, 0.75) + 1.5*IQR(a$x), color = "blue") +
+  # Q1 - 1.5IQR 离群点
+  geom_vline(xintercept = quantile(a$x, 0.25) - 1.5*IQR(a$x), color = "yellow") +
+  # 正常最小值点
+  geom_vline(xintercept = min(a$x), color = "blue")
+
+lj %>% 
+  ggplot(aes(price_sqm, color = line)) + 
+  geom_boxplot() + 
+  coord_flip()
+```
+
+5. line graph
+```{r}
+temp <- lj %>% 
+  count(building_year)
+temp %>% 
+  ggplot(aes(building_year,n)) + 
+  geom_line() +
+  scale_x_discrete(breaks = seq(1911, 2019, 1))
+```
+
+
+公式表示法
+$$
+\bar X N(\mu,\sigma^2)
+$$
+## 下节课预习
+rnorm(100, 0, 1) # 100个均值为0 标准差为1的随机数
+pnorm() # 算概率
+qnorm() # 逆过程
+dnorm() 
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+

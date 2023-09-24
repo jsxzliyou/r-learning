@@ -3,8 +3,8 @@ title: "Statistics_Session2"
 author: "李游游"
 date: "2023-09-23"
 output:
-  # pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -21,7 +21,7 @@ library(rstatix)
 load("/Users/liyou/class/r-learning/data/lj_sh_2019.RData")
 # library(showtext)
 knitr::opts_chunk$set(echo = TRUE)
-#theme_set(theme(text = element_text(family = "Songti SC")))
+theme_set(theme(text = element_text(family = "Songti SC")))
 ```
 
 # 三类指标

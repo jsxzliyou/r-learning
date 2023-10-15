@@ -1,0 +1,201 @@
+---
+title: "r_class_2023-10-14 - R语言课程第三天课程"
+author: "李游游"
+date: "2023-10-14"
+CJKmainfont: Songti SC
+output:
+  pdf_document: 
+    latex_engine: xelatex
+    pandoc_args: ["--pdf-engine=xelatex", "--variable", "mainfont:Songti SC"]
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+
+
+```
+
+
+# Function 函数
+
+```{r}
+# 平方和
+square_plus <- function(x) {
+  squ <- x * x
+  sum(squ, na.rm = TRUE)
+}
+square_plus(c(1,2,3,4,5,6,7,8,9,10))
+```
+
+```{r}
+# 原始1
+square_plus2 <- function(x) {
+  out <- vector("integer", length(x))
+  for (i in seq_along(x)) {
+    out[[i]] <- x[[i]] * x[[i]]
+  }
+  sum(out)
+}
+square_plus2(c(1,2,3,4,5,6,7,8,9,10))
+```
+
+```{r}
+# 原始2
+square_plus3 <- function(x) {
+  out <- 0
+  for (i in seq_along(x)) {
+    out <- out + x[i] ^ 2
+  }
+  return (out)
+}
+square_plus3(c(10, 48, 20))
+```
+
+```{r}
+# 连续自然数求和
+conti_sum <- function(x, y) {
+  if (y < x) {
+    return (0)
+  }
+  sum <- 0
+  for (i in x:y) {
+    sum = sum + i
+  }
+  sum
+}
+conti_sum(75, 100)
+```
+
+```{r}
+x <- rchisq(15, 8)
+y <- (x / 10) ^ 2 + x
+hist(y)
+```
+```{r}
+z <- y * 10 + 5
+ggplot(data.frame(x = z), aes(x)) +
+  geom_histogram() 
+```
+```{r}
+norm_di <- function(times) {
+  result <- numeric(times)
+  for (i in 1:times) {
+    x <- rchisq(15, 8)
+    y <- (x / 10) ^ 2 + x
+    result[i] <- mean(y)
+  }
+  result
+}
+res <- norm_di(10000)
+
+ggplot(data.frame(x = res), aes(x)) + 
+  geom_histogram(binwidth = 0.2) +
+  geom_density(color = "red")
+
+```
+## 计算pi
+```{r}
+times <- 10000000
+x <- runif(times, min = -1, max = 1)
+y <- runif(times, min = -1, max = 1)
+
+# 不用for
+count <- sum(x^2 + y^2 <= 1)
+4 * count / times
+
+# 用for
+count <- 0
+for (i in 1:times) {
+  if (x[i] ^ 2 + y[i] ^ 2 <= 1) {
+    count <- count + 1
+  }
+}
+4 * count / times
+```
+
+## 计算pi
+```{r}
+pi <- function(n) {
+  result <- numeric(n)
+  times <- 5
+  for (i in 1:n) {
+    x <- runif(times, min = -1, max = 1)
+    y <- runif(times, min = -1, max = 1)
+    count <- sum(x^2 + y^2 <= 1)
+    result[i] <- 4 * count / times
+  }
+  return (result)
+}
+pi_hist <- pi(100000)
+mean(pi_hist)
+hist(pi_hist)
+abline(v = mean(pi_hist), col = "red", lwd = 1) 
+```
+## 一堆数，大于均值 除以2 小于均值 乘以2
+```{r}
+nor <- function(x) {
+  mean_x <- mean(x)
+  for (i in 1:length(x)) {
+    if (x[i] < mean_x) {
+      x[i] <- x[i] * 2
+    } else if (x[i] > mean_x) {
+      x[i] <- x[i] / 2
+    } else {
+      x[i] <- x[i] * 1.5
+    }
+  }
+  return (x)
+}
+x <- c(1, 1, -1, -1, 1, -1, 0)
+nor(x)
+```
+
+```{r}
+x <- rnorm(1000, 0, 2)
+for (i in 1:length(x)) {
+  if (x[i] > 0) {
+    x[i] <- "高"
+  } else if (x[i] < 0) {
+    x[i] <- "低"
+  } else {
+    x[i] <- "中心值"
+  }
+}
+
+# 计算每个值出现的频数  
+freq <- table(x)
+# 计算每个值出现的频率（占总数的百分比）  
+percent <- freq / sum(freq) * 100  
+# 打印结果  
+print(percent)
+
+ggplot(data.frame(x), aes(x)) +
+  geom_bar()
+
+```
+```{r}
+# 加载ggplot2包  
+library(ggplot2)  
+  
+# 抽样1000个正态分布的数值  
+sample_size <- 1000  
+mu <- 0 # 均值  
+sigma <- 1 # 标准差  
+sample_data <- rnorm(sample_size, mu, sigma)  
+  
+# 创建数据框  
+df <- data.frame(value = sample_data)  
+  
+# 使用ggplot绘制直方图和密度曲线  
+ggplot(df, aes(x = value)) +  
+  geom_histogram(aes(y = ..density..), binwidth = 0.2, fill = "lightblue", color = "black") +
+  geom_density(color = "red", size = 1)
+```
+
+
+
+
+

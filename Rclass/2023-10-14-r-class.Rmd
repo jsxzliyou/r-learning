@@ -1,0 +1,153 @@
+---
+title: "2023-10-14-r-class - R语言课程第四天课程"
+author: "李游游"
+date: "2023-10-15"
+CJKmainfont: Songti SC
+output:
+  pdf_document: 
+    latex_engine: xelatex
+    pandoc_args: ["--pdf-engine=xelatex", "--variable", "mainfont:Songti SC"]
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(modelr)
+#options(na.action = na.warn)
+```
+
+```{r}
+ggplot(sim1, aes(x, y)) +
+  geom_point()
+```
+
+```{r}
+models <- tibble(
+  a1 = runif(250, -20, 40),
+  a2 = runif(250, -5, 5)
+)
+sim1
+ggplot(sim1, aes(x, y)) +
+  geom_abline(
+    aes(intercept = a1, slope = a2),
+    data = models, alpha = 1/4
+  ) +
+  geom_point()
+```
+# 一元线性回归模型暴力计算
+```{r}
+# y = c + kx + e
+# e = y - c - kx
+ly <- function(times) {
+  
+  # a1是c  a2是k
+  models <- tibble(
+    a1 = runif(times, -20, 40),
+    a2 = runif(times, -5, 5)
+  )
+  distance_min <- 65535
+  distance_tmp <- 0
+  intercept <- 0
+  slope <- 0
+  for (k in 1:times) {
+    e2 <- numeric(nrow(sim1))
+    for (i in 1:nrow(sim1)) {
+      e2[i] <- sim1$y[i] - models$a1[k] - models$a2[k] * sim1$x[i]
+    }
+    distance_tmp <- sum(e2 ^ 2)
+    # 每次保留e^2最小的
+    if (distance_tmp < distance_min) {
+      distance_min <- distance_tmp
+      intercept <- models$a1[k]
+      slope <- models$a2[k]
+    }
+  }
+  cat("距离：", distance_min, "截距：", intercept, "斜率：", slope)
+}
+ly(50000)
+
+```
+
+```{r}
+# 用表格计算
+test <- function(times) {
+  models <- tibble(
+    a1 = runif(times, -20, 40),
+    a2 = runif(times, -5, 5)
+  )
+  # 将数据拼在一起
+  full_data <- merge(models, sim1, by = NULL)
+  
+  # 添加距离项
+  full_data <- full_data %>% mutate(distance = ((y - a1 - a2 * x) ^ 2))
+  # 分组汇总计算距离平方
+  group_data <- full_data %>% 
+    group_by(a1, a2) %>% 
+    mutate(sum_d = sum(distance))
+  group_data <- group_data[order(group_data$sum_d),]
+  # 找到最小距离平方
+  min_distance <- group_data[which.min(group_data$sum_d), ]
+  print(min_distance)
+}
+test(50000)
+```
+
+# 线性规划函数
+```{r}
+sim1_mod <- lm(y ~ x, data = sim1)
+coef(sim1_mod)
+```
+
+# 优化计算
+```{r}
+measure_distance <- function(b) {
+  b1 <- b[1]  # 截距
+  b2 <- b[2]  # 斜率
+  sum((sim1$y - b1 - b2 * sim1$x) ^ 2)
+}
+
+best <- optim(c(0, 0), measure_distance)
+best$par
+```
+
+# 回归、预测、残差
+```{r}
+# 回归
+sim1_mod <- lm(y ~ x, data = sim1)
+sim1_r <- coef(sim1_mod)
+# 预测
+grid <- sim1 %>% 
+  data_grid(x)
+grid
+grid <- grid %>% 
+  add_predictions(sim1_mod)
+grid
+sim1 %>% ggplot(aes(x)) +
+  geom_point(aes(y = y)) +
+  geom_line(
+    aes(y = pred),
+    data = grid,
+    color = "red",
+    size = 1
+  )
+
+# 残差
+sim1 <- sim1 %>% 
+  mutate(res = (y - (sim1_r[1] + sim1_r[2]*x)))
+sim1
+mean(sim1$res)
+
+# 残差图
+ggplot(sim1, aes(res)) +
+  geom_freqpoly(binwidth = 0.5)
+
+
+```
+
+
+
+
+
+
+

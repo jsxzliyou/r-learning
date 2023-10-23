@@ -1,8 +1,7 @@
 ---
-title: "<R数据科学> 第一次作业"
+title: "《R数据科学》 第一次作业"
 author: "李游游"
 date: "`r Sys.Date()`"
-CJKmainfont: Songti SC
 output:
   pdf_document: 
     latex_engine: xelatex
@@ -11,7 +10,7 @@ output:
 
 ```{r setup, include=FALSE}
 #knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(echo = FALSE,error = FALSE, warning = FALSE, message = FALSE,
+knitr::opts_chunk$set(echo = FALSE ,error = FALSE, warning = FALSE, message = FALSE,
                       out.width = "100%", split = FALSE, fig.align = "center")
 library(tidyverse)
 library(ggplot2)
@@ -22,20 +21,26 @@ library(plotly)
 library(patchwork)
 library(ggrepel)
 library(readxl) 
+library(showtext)
+showtext_auto(enable = TRUE)
 ```
 
 
 # 第一题：探索nycflights13数据集
 
 
-1. 从flights数据中找出到达时间延误2小时或者更多的所有航班，并将生成的新数据，保存为 flight_arr2hr
+1. 从flights数据中找出到达时间延误2小时或者更多的所有航班，并将生成的新数据，保存为 flight_arr2hr。
+
+如下面表格所示，展示出前10条示例数据
 ```{r}
 flight_arr2hr <- flights %>% filter(arr_delay >= 120)
 flight_arr2hr
 ```
 
 
-2. 将生成的flight_arr2hr数据集根据目的地(dest)进行分组，统计出抵达每个目的地的航班数量，筛选出抵达航班数量前十名的目的地，将结果命名为 top10_dest
+2. 将生成的flight_arr2hr数据集根据目的地(dest)进行分组，统计出抵达每个目的地的航班数量，筛选出抵达航班数量前十名的目的地，将结果命名为 top10_dest。
+
+如下面表格所示
 ```{r}
 top10_dest <- flight_arr2hr %>% 
               group_by(dest) %>% 
@@ -46,6 +51,8 @@ top10_dest
 
 
 3. 从 weather 表中挑选出以下变量:year, month, day, hour, origin, humid, wind_speed，并 将其与 flight_arr2hr 表根据共同变量进行左连接, 生成的新数据保存为 flight_weather
+
+数据如下表所示
 ```{r}
 weather1 <- weather %>% select(year, month, day, hour, origin, humid, wind_speed)
 flight_weather <- flight_arr2hr %>% 
@@ -55,8 +62,13 @@ flight_weather
 
 
 4. 基于 flight_weather 数据集，根据不同出发地(origin)在平行的三个图中画出风速wind_speed(x 轴)和出发延误时间dep_delay(y轴)的散点图，以及平滑曲线
+
+如下图所示(去掉dep_delay高处离群点)
 ```{r}
+# 去掉高处离群点
+high_x <- quantile(flight_weather$dep_delay, 0.75) + 1.5*IQR(flight_weather$dep_delay)
 flight_weather %>%
+  filter(dep_delay < high_x) %>% 
   ggplot(aes(x = wind_speed, y = dep_delay)) +
   geom_point(position = "jitter") +
   geom_smooth() +
@@ -65,25 +77,28 @@ flight_weather %>%
 
 
 5. flights中每家航空公司在2013年有多少班次的航班被取消了?提示:依据dep_time来判断某班次航班是否被取消
-**如下表，2013年共有8225个班次被取消**
+
+**每家航空公司在2013年的航班取消数据如下表，共有8255个班次被取消**
 ```{r}
-cancelled_flights <- flights[flights$year == 2013 & is.na(flights$dep_time),]
-cancelled_flights
+cancelled_flights <- flights %>% 
+  filter(year == 2013 & is.na(dep_time))
+(cancelled_flights <- cancelled_flights %>% 
+  group_by(carrier) %>% 
+  summarise(cancelled_count = n()))
 ```
 
 
 6. 找出flights中每一家航空公司的航班最常去的目的地机场，以及flights中每家航空公司飞往最常去的目的地机场的航班数量
+
+结果如下表所示
 ```{r}
 # 先统计每家航空公司每个目的地的航班数量
 flights_grouped <- flights %>%  
   group_by(carrier, dest) %>%  
-  summarise(flights_count = n())
-# 对于每个航空公司，找出飞往哪个目的地的航班最多  
-flights_grouped %>%  
-  group_by(carrier) %>%  
-  summarise(dest_with_most_flights = first(dest[order(flights_count, decreasing = TRUE)]),  
-                  flights_count_most = first(flights_count[order(flights_count, decreasing = TRUE)])) %>%  
-print()
+  summarise(flights_count = n()) %>% 
+  arrange(carrier, desc(flights_count)) %>% 
+  slice(1)
+flights_grouped
 ```
 
 
@@ -94,49 +109,72 @@ print()
 ```{r}
 hw1_a <- read_excel("../data/hw1_a.xlsx")
 hw1_b <- read_excel("../data/hw1_b.xlsx")
+
+
+summary_report <- function(data, column) {
+  var_class <- class(data[[column]])
+  var_min <- min(data[[column]])
+  var_max <- max(data[[column]])
+  var_median <- median(data[[column]])
+  var_mean <- mean(data[[column]])
+  var_sd <- sd(data[[column]])
+  
+  print(paste("Variable ", column))
+  print(paste("class: ", var_class))
+  print(paste("min: ", var_min))
+  print(paste("max: ", var_max))
+  print(paste("median: ", var_median))
+  print(paste("mean: ", var_mean))
+  print(paste("sd: ", var_sd))
+}
+
+# 数据hw1_a
+print("hw1_a details:")
+summary_report(hw1_a, "ID")
+summary_report(hw1_a, "Age")
+summary_report(hw1_a, "Years_at_Employer")
+summary_report(hw1_a, "Years_at_Address")
+summary_report(hw1_a, "Income")
+
+# 数据hw1_b
+print("hw1_b details:")
+summary_report(hw1_b, "ID")
+summary_report(hw1_b, "Credit_Card_Debt")
+summary_report(hw1_b, "Automobile_Debt")
+summary_report(hw1_b, "Is_Default")
 ```
 
 
-**数据hw1_a:**
-
-变量ID：形式为`r class(hw1_a$ID)`,最小值为`r min(hw1_a$ID)`,最大值为`r max(hw1_a$ID)`,中值为`r median(hw1_a$ID)`,均值为`r mean(hw1_a$ID)`,标准差为`r sd(hw1_a$ID)`
-
-变量Age：形式为`r class(hw1_a$Age)`,最小值为`r min(hw1_a$Age)`,最大值为`r max(hw1_a$Age)`,中值为`r median(hw1_a$Age)`,均值为`r mean(hw1_a$Age)`,标准差为`r sd(hw1_a$Age)`
-
-变量Years_at_Employer：形式为`r class(hw1_a$Years_at_Employer)`,最小值为`r min(hw1_a$Years_at_Employer)`,最大值为`r max(hw1_a$Years_at_Employer)`,中值为`r median(hw1_a$Years_at_Employer)`,均值为`r mean(hw1_a$Years_at_Employer)`,标准差为`r sd(hw1_a$Years_at_Employer)`
-
-变量Years_at_Address：形式为`r class(hw1_a$Years_at_Address)`,最小值为`r min(hw1_a$Years_at_Address)`,最大值为`r max(hw1_a$Years_at_Address)`,中值为`r median(hw1_a$Years_at_Address)`,均值为`r mean(hw1_a$Years_at_Address)`,标准差为`r sd(hw1_a$Years_at_Address)`
-
-变量Income：形式为`r class(hw1_a$Income)`,最小值为`r min(hw1_a$Income)`,最大值为`r max(hw1_a$Income)`,中值为`r median(hw1_a$Income)`,均值为`r mean(hw1_a$Income)`,标准差为`r sd(hw1_a$Income)`
-
-
-**数据hw1_b:**
-
-变量ID：形式为`r class(hw1_b$ID)`,最小值为`r min(hw1_b$ID)`,最大值为`r max(hw1_b$ID)`,中值为`r median(hw1_b$ID)`,均值为`r mean(hw1_b$ID)`,标准差为`r sd(hw1_b$ID)`
-
-变量Credit_Card_Debt：形式为`r class(hw1_b$Credit_Card_Debt)`,最小值为`r min(hw1_b$Credit_Card_Debt)`,最大值为`r max(hw1_b$Credit_Card_Debt)`,中值为`r median(hw1_b$Credit_Card_Debt)`,均值为`r mean(hw1_b$Credit_Card_Debt)`,标准差为`r sd(hw1_b$Credit_Card_Debt)`
-
-变量Automobile_Debit：形式为`r class(hw1_b$Automobile_Debit)`,最小值为`r min(hw1_b$Automobile_Debit)`,最大值为`r max(hw1_b$Automobile_Debit)`,中值为`r median(hw1_b$Automobile_Debit)`,均值为`r mean(hw1_b$Automobile_Debit)`,标准差为`r sd(hw1_b$Automobile_Debit)`
-
-
 2. 结合上课我们所学的几种数据 join 的形式，尝试将两个数据集进行合并。对于每种数据合并的方式，请说明 key, 并且报告合并后的数据样本总行数
+
+课堂上一共学习了常用的四种连接，内连接、左连接、右链接和全连接，还有两种不常用的筛选连接，分别如下：
 ```{r}
 i_j_result <- hw1_a %>% 
-  left_join(hw1_b, by = "ID")
-cat("内连接 inner join，通过ID变量连接，总行数：", nrow(i_j_result), "\n")
+  inner_join(hw1_b, by = "ID")
+print(paste("hw1_a inner join hw1_b, by ID, row count: ", nrow(i_j_result)))
 l_j_result <- hw1_a %>% 
   left_join(hw1_b, by = "ID")
-cat("左连接 left join，通过ID变量连接，总行数：", nrow(l_j_result), "\n")
+print(paste("hw1_a left join hw1_b, by ID, row count: ", nrow(l_j_result)))
 r_j_result <- hw1_a %>% 
   right_join(hw1_b, by = "ID")
-cat("右连接 right join，通过ID变量连接，总行数：", nrow(r_j_result), "\n")
+print(paste("hw1_a right join hw1_b, by ID, row count: ", nrow(r_j_result)))
 f_j_result <- hw1_a %>% 
-  right_join(hw1_b, by = "ID")
-cat("全连接 full join，通过ID变量连接，总行数：", nrow(f_j_result), "\n")
+  full_join(hw1_b, by = "ID")
+print(paste("hw1_a full join hw1_b, by ID, row count: ", nrow(f_j_result)))
+
+s_j_result <- hw1_a %>% 
+  semi_join(hw1_b, by = "ID")
+print(paste("hw1_a semi join hw1_b, by ID, row count: ", nrow(s_j_result)))
+a_j_result <- hw1_a %>% 
+  anti_join(hw1_b, by = "ID")
+print(paste("hw1_a anti join hw1_b, by ID, row count: ", nrow(a_j_result)))
+
 ```
 
 
 3. 请筛选出 hw1_a 中收入大于 4000 的样本，并将此样本和 hw1_b 中 Is_Default=1 的样本合并，你可以使用 inner join 的方式。这一问中你可以用 pipe 的形式
+
+下表为结果示例
 ```{r}
 filter(hw1_a, Income > 4000) %>% 
   inner_join(filter(hw1_b, Is_Default == 1), by = "ID")
@@ -145,9 +183,10 @@ filter(hw1_a, Income > 4000) %>%
 
 4. 在第2问的基础上, 请给出Income对Years_at_Employer的散点图，你发现了哪些趋势和现象?
 ```{r}
-i_j_result %>% 
+question_4 <- i_j_result %>% 
   ggplot(aes(x = Years_at_Employer, y = Income)) +
   geom_point()
+question_4
 ```
 发现
 
@@ -159,7 +198,8 @@ i_j_result %>%
 5. 在第 4 问的基础上 按照 Is_Default 增加一个维度，请展示两变量在不同违约状态的散点图。请使用明暗程度作为区分方式
 ```{r}
 i_j_result$Is_Default <- as.character(i_j_result$Is_Default)
-i_j_result %>% 
+l_j_result %>%
+  filter(!is.na(Is_Default)) %>% 
   ggplot(aes(x = Years_at_Employer, y = Income, alpha = Is_Default)) +
   geom_point()
 ```
@@ -174,39 +214,41 @@ i_j_result %>%
 
 
 7. 请找出各个列的缺失值，并删除相应的行。请报告每一变量的缺失值个数，以及所有缺失值总数
+
+如下表所示，在将hw1_a与hw1_b进行全连接后产生的缺失值个数（因为分别看每个表并没有缺失值）
 ```{r}
 # 检测各列的缺失值  
-missing_values <- apply(l_j_result, 2, is.na)  
+missing_values <- apply(f_j_result, 2, is.na)  
 # 输出每列的缺失值个数  
 print(apply(missing_values, 2, sum))  
-print(paste("所有的缺失值数量:", sum(missing_values)))
+print(paste("NA count: ", sum(missing_values)))
 # 删除包含缺失值的行  
-l_j_result_clean <- na.omit(l_j_result)  
+l_j_result_clean <- na.omit(f_j_result)
 # 输出删除后数据集的维度，确认没有缺失值的行  
-print(paste("删除各行缺失值后的记录数：", nrow(l_j_result_clean)))
+print(paste("remove NA, count: ", nrow(l_j_result_clean)))
 ```
 
 
 8. 找出 Income 中的极端值并滤掉对应行的数据
 ```{r}
 #低处离群点：Q1 - 1.5IQR
-low_point <- quantile(l_j_result_clean$Income, 0.25) - 1.5*IQR(l_j_result_clean$Income)
-cat("低处利群点：",low_point, "   当前数据集中不存。\n")
+low_point <- quantile(hw1_a$Income, 0.25) - 1.5*IQR(hw1_a$Income)
+print(paste("Lower Outliers: ", low_point))
 #高处离群点：Q3 + 1.5IQR
-high_point <- quantile(l_j_result_clean$Income, 0.75) + 1.5*IQR(l_j_result_clean$Income)
-cat("高处离群点：", high_point)
+high_point <- quantile(hw1_a$Income, 0.75) + 1.5*IQR(hw1_a$Income)
+print(paste("High Outliers: ", high_point))
 ```
+去掉极端值自后的列表还有176行，数据示例如下表：
 ```{r}
 # 去掉离群点数据
-l_j_n <- filter(l_j_result_clean, Income <= high_point)
-l_j_n
+hw1_a_clean <- filter(hw1_a, Income <= high_point)
+hw1_a_clean
 ```
 
 
 9. 将 Income 对数化，并画出直方图和 density curve，你有什么发现?
 ```{r}
 # 对数化收入列
-#income <- log(l_j_n$Income)
 income <- log(hw1_a$Income)
 # 创建直方图和密度曲线
 ggplot(data.frame(x = income), aes(x)) +
@@ -214,13 +256,10 @@ ggplot(data.frame(x = income), aes(x)) +
   geom_density(color = "red", size = 1) +
   geom_vline(xintercept = mean(income), color = "orange", linetype = "dashed")
 
-
 ```
 发现
 
 -   整体趋势大致符合正态分布，但又不完全符合，应该是数据来源并不是完全随机抽样
-
-
 
 
 

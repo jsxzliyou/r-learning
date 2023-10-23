@@ -1,0 +1,104 @@
+---
+title: "2023-10-14-r-class - R语言课程第四天课程   文本处理"
+author: "李游游"
+date: "2023-10-15"
+CJKmainfont: Songti SC
+output:
+  pdf_document: 
+    latex_engine: xelatex
+    pandoc_args: ["--pdf-engine=xelatex", "--variable", "mainfont:Songti SC"]
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(stringr)
+```
+
+# 文本处理
+```{r}
+x <- c("Apple", "Banana", "Pear")
+str_sub(x, 1, 1) <- str_to_lower(str_sub(x, 1, 1))
+x
+```
+
+```{r}
+str_view(x, "an")
+str_view(x, ".a.")
+```
+
+```{r}
+x <- c("apple pie", "apple", "apple cake")
+str_view(x, "apple")
+str_view(x, "^apple$")
+```
+```{r}
+x <- c("apple", "banana", "pear")
+str_detect(x, "e")
+sum(str_detect(words, "^t"))
+mean(str_detect(words, "[a]"))
+```
+
+```{r}
+colors <- c(
+  "red", "orange", "yellow", "green", "blue", "purple"
+)
+color_match <- str_c(colors, collapse = "|")
+color_match
+has_color <- str_subset(sentences, color_match)
+matches <- str_extract(has_color, color_match)
+head(matches)
+
+```
+
+
+# 从这是练习题
+
+```{r}
+text_a <- scan(file = "../data/text_a.txt", what = "character")
+text_b <- scan(file = "../data/text_b.txt", what = "character")
+
+# 1、定冠词和不定冠词
+sum(str_count(text_a, "^(a|an)$"))
+mean(str_count(text_a, "^(a|an)$"))
+
+sum(str_count(text_a, "^the$"))
+mean(str_count(text_a, "^the$"))
+
+
+sum(str_count(text_b, "^(a|an)$"))
+mean(str_count(text_b, "^(a|an)$"))
+
+sum(str_count(text_b, "^the$"))
+mean(str_count(text_b, "^the$"))
+```
+
+```{r}
+# 4 符号
+sum(str_count(text_a, ","))
+sum(str_count(text_a, "\\."))
+
+sum(str_count(text_b, ","))
+sum(str_count(text_b, "\\."))
+```
+```{r}
+# 5 平均短句字数
+sum(str_count(text_a, ",")) / length(text_a)
+sum(str_count(text_a, "\\.")) / length(text_a)
+
+sum(str_count(text_b, ",")) / length(text_b)
+sum(str_count(text_b, "\\.")) / length(text_b)
+
+```
+```{r}
+# 6 语气词
+x <- c("must", "can", "should", "could", "may", "shall", "maybe", "will", "likely", "unlikely")
+x_match <- str_c(x, collapse = "|")
+sum(str_count(text_a, x_match)) / length(text_a)
+sum(str_count(text_b, x_match)) / length(text_b)
+```
+
+
+
+

@@ -1,0 +1,302 @@
+---
+title: "statistics_session_20-22"
+author: "liyouyou"
+date: "2023-10-22"
+output: pdf_document
+---
+
+```{r setup, include = FALSE,echo = FALSE}
+knitr::opts_chunk$set(echo = FALSE,error = FALSE, warning = FALSE, message = FALSE,
+                      out.width = "100%", split = FALSE, fig.align = "center")
+library(tidyverse)
+library(showtext)
+library(gridExtra)
+library(sampling)
+library(EnvStats)
+library(datasauRus)
+# 线性模型假设的综合验证
+library(gvlma)
+
+library(GGally)
+showtext_auto(enable = TRUE)
+```
+
+# 匹配样本
+
+```{r}
+
+d1 <- tibble(
+  upx = c(32, 30, 19, 16, 15, 18, 14, 10, 7, 16), 
+  intext = c(25, 24, 15, 15, 13, 15, 15, 8, 9, 11))
+d1
+# 非匹配检验
+t.test(d1$upx, d1$intext)
+# 匹配检验
+t.test(d1$upx, d1$intext, paired = TRUE)
+```
+# 比例检验
+```{r}
+## 见上一天最后
+# 检验靠近地铁和不靠近地铁的二手房 均价是否有显著差异
+lj <- read_csv("../data/2023-09-12_cleaned.csv")
+lj <- lj %>% 
+  mutate(near_subway = ifelse(near_subway == "近地铁", 1, 0))
+lj <- lj %>% 
+  mutate(near_subway = ifelse(is.na(near_subway), 0, 1))
+lj <- lj %>% 
+  mutate(near_subway = 
+           as.factor(near_subway))
+
+t.test(lj$price_sqm ~ lj$near_subway)
+
+# 比例检验
+prop.test(table(lj$near_subway))
+
+# 方差检验 , 方差不相等
+var.test(lj$price_sqm ~ lj$near_subway)
+
+```
+
+# 方差检验
+```{r}
+# 上一天的数据，检验单个样本方差等于多少
+bustime <- read_csv("../data/BusTimes.csv")
+varTest(bustime[1:24, 1]$Times, sigma.squared = 4)
+# 检验两个样本方差之比
+var.test(lj$price_sqm ~ lj$near_subway)
+
+```
+
+# 分类数据 vs 分类数据
+1. 列联表分析与独立性检验
+```{r}
+#  https://github.com/jjcheer/1st-assignment
+# 泰坦尼克悲剧   ebs_s06.pdf
+# 性别生存是否明显差异
+
+titanic_gender <- matrix(data = c(338,316,1352,109),
+                         nrow = 2, 
+                         byrow = TRUE,
+                         dimnames = list(c("survive","die"), c("male","female")))
+
+chisq.test(titanic_gender,correct = FALSE)
+
+# 仓位等级与生存
+titanic_level <- matrix(data = c(202, 118, 178, 212, 123, 167, 528, 696),
+                        nrow = 2,
+                        byrow = TRUE,
+                        dimnames = list(c("survice", "die"), c("head", "sec", "third", "sss")))
+chisq.test(titanic_level,correct = FALSE)
+
+
+```
+2. 拟合优度检验 （最后一位小数应该是均匀分配，而不是随便乱填）
+```{r}
+# 也是用卡方检验
+
+
+```
+
+
+3.形状检验
+```{r}
+chemline <- read_csv("../data/Chemline.csv")
+# 手动方法，算分位点，分成10组，因为要每种类型的期望频数要大于5
+qnorm(seq(0.1, 0.9, 0.1), mean = mean(chemline$Score), sd = sd(chemline$Score))
+
+# 检验是否服从正态分布
+shapiro.test(chemline$Score)
+# 可以检验各种分布
+ks.test(chemline$Score, 
+        "pnorm", 
+        mean = mean(chemline$Score), 
+        sd = sd(chemline$Score))
+
+```
+
+# ANOVA分析：实验研究中很常见
+```{r}
+# 汽车撞击试验
+car_crash  <-  tibble(
+  small = c(44,43,44,54,38,43,42,45,44,50),
+  medium = c(41,49,43,41,47,42,37,43,44,34),
+  large = c(32,37,38,45,37,33,38,45,43,42)
+)
+
+car_crash <- car_crash %>% 
+  pivot_longer(everything(),
+               names_to = c("car_type"),
+               values_to = "crash") %>% 
+  mutate(car_type = factor(car_type))
+
+# the boxplot
+car_crash %>% 
+  ggplot(aes(car_type,crash)) +
+  geom_boxplot() +
+  xlab("Car type")
+
+# F-test
+
+av = aov(crash ~ car_type, data = car_crash)
+summary(av)
+# 结果中Residuals是残差自由度30-3组
+
+#perform Tukey's test
+
+TukeyHSD(av, conf.level = 0.95)
+plot(TukeyHSD(av, conf.level = 0.95), las = 1)
+```
+
+# 双因素方差分析
+```{r}
+car_crash <- tibble(
+  small = c(44,54,43,43,44,42),
+  medium = c(41,49,47,43,37,34),
+  large = c(32,45,42,37,38,33),
+  region =c("Foreign","Foreign","Foreign","Domestic","Domestic","Domestic")
+)
+
+car_crash <- car_crash %>%
+  pivot_longer(c("small","medium","large"), names_to = c("car_type"), values_to = "crash") %>% 
+  mutate(car_type = factor(car_type))
+
+# tw two w...双因素变量
+tw_anova <-aov(crash ~ region + car_type,data = car_crash)
+summary(tw_anova)
+
+# 交互作用 * car_type 交互项
+tw_anova <-aov(crash ~ region * car_type,data = car_crash)
+summary(tw_anova)
+
+# 交互作用图，没有交叉，交互作用不显著
+with(car_crash, {
+interaction.plot(region,car_type,crash,type="b",
+                 col=c('red',"blue"), pch = c(16,18),
+                 main = "Interaction between region and car_type")
+})
+```
+
+
+```{r}
+taste <- tibble(
+  red_meet = c(10,9,10,3,3,2),
+  chicken = c(4,4,2,6,5,7),
+  fish = c(3,2,4,8,6,7),
+  wine =c("red_wine","red_wine","red_wine","white_wine","white_wine","white_wine")
+)
+
+taste <- taste %>%
+  pivot_longer(c("red_meet","chicken","fish"), names_to = c("meet_type"), values_to = "level") %>% 
+  mutate(meet_type = factor(meet_type))
+
+# tw two w...双因素变量
+tw_anova <-aov(level ~ wine + meet_type,data = taste)
+summary(tw_anova)
+
+# 交互作用 * meet_type 交互项
+tw_anova <-aov(level ~ wine * meet_type,data = taste)
+summary(tw_anova)
+
+# 交互作用图，没有交叉，交互作用不显著
+with(taste, {
+interaction.plot(wine,meet_type,level,type="b",
+                 col=c('red',"blue"), pch = c(16,18),
+                 main = "Interaction between wine and meet_type")
+})
+
+```
+
+```{r}
+# ebs_s07.pdf 线性回归联系
+p <- tibble(
+  x = c(1, 2, 3, 4, 5),
+  y = c(3, 7, 5, 11, 14)
+)
+ggplot(p, aes(x = x, y = y)) + 
+  geom_point()
+
+sim1_mod <- lm(y ~ x, data = p)
+coef(sim1_mod)
+summary(sim1_mod)
+# R-squared 解释程度，只有一个x变量对y的解释程度，如果多元，需要看Adjusted R-squared
+# F-statistic 模型总体显著性   p-value x的显著性
+# x的 t value的平方 = F-statistic
+```
+
+### 多重共线性  方差膨胀因子：VIF 本来应该显著的结果变得不显著，本来应该正数变成负数    VIF = 1/(1-R^2)
+
+### 模型比较  ANOVA  AIC() (赤池信息准则)
+
+### 变量选择 stepAIC()  
+
+
+```{r}
+## 美国谋杀相关数据
+states <- as.data.frame(state.x77[,c("Murder", "Population", "Illiteracy", "Income", "Frost")])
+ggpairs(states)
+# fit the model
+fit <- lm(Murder ~ Population + Illiteracy + Income + Frost,
+          data=states)
+
+summary(fit)
+# Adjusted R-squared:  0.5285  四个变量解释了 52%的y
+# p-value 模型整体是非常显著的
+
+
+par(mfrow = c(2,2))
+plot(fit)
+# stargazer 输出模型结果
+```
+```{r}
+gvmodel <- gvlma(fit)
+summary(gvmodel)
+
+```
+
+```{r}
+## 多重共线性
+library(car)
+vif(fit)
+
+## 三类点
+library(car)
+
+influencePlot(fit, id.method="identify")
+```
+```{r}
+# comparison between models
+# 4个
+fit1 <- lm(Murder ~ Population + Illiteracy + Income + Frost,
+           data=states)
+# 2个
+fit2 <- lm(Murder ~ Population + Illiteracy, data=states)
+# 对比是否存在显著差异，p很大，没有显著区别，所以去掉income和frost
+anova(fit2,fit1)
+
+# AIC criteria
+
+AIC(fit1,fit2)
+
+```
+
+```{r}
+library(readxl)
+
+d1<- read_excel("../data/Simmons.xlsx",
+                col_names = TRUE,sheet=1)
+# 广义线性模型
+d_logit<-glm(Coupon~Spending + Card,
+             data = d1,
+             family = binomial)
+summary(d_logit)
+
+plot(d_logit)
+
+
+# predict the probability
+# log Raio  = log p/(1-p) 会使用和不使用的优势比
+(predict_odd <- predict(d_logit,data=d1))
+
+(predict_d <- predict(d_logit,data=d1,type = "response"))
+```
+

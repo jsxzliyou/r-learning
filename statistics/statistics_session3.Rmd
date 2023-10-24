@@ -2,7 +2,7 @@
 title: "statistics_session3"
 author: "liyouyou"
 date: "2023-09-24"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
